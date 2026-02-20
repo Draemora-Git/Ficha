@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Draemora 4.0 - Gerenciador Arcano</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=MedievalSharp&family=Quicksand:wght@300;400;600&family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    <style id="custom-theme-styles">
+        :root {
+            --gold: #d4af37;
+            --panel-bg: rgba(26, 26, 26, 0.9);
+            --text-color: #e0e0e0;
+            --accent-red: #8b0000;
+        }
+
+        body {
+            transition: background 0.5s ease, color 0.3s ease;
+            min-height: 100vh;
+        }
+
+        .draemora-stars {
+            background-color: #0a192f;
+            background-image: 
+                radial-gradient(white, rgba(255,255,255,.2) 2px, transparent 40px),
+                radial-gradient(white, rgba(255,255,255,.15) 1px, transparent 30px),
+                radial-gradient(white, rgba(255,255,255,.1) 2px, transparent 40px);
+            background-size: 550px 550px, 350px 350px, 250px 250px;
+            background-position: 0 0, 40px 60px, 130px 270px;
+        }
+
+        h1, h2, h3 { font-family: 'Cinzel', serif; color: var(--gold); }
+
+        .panel {
+            background: var(--panel-bg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            border-radius: 12px;
+        }
+
+        .nav-tab {
+            padding: 12px 24px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+            font-family: 'Cinzel', serif;
+            font-weight: bold;
+        }
+
+        .nav-tab.active {
+            border-bottom-color: var(--gold);
+            color: var(--gold);
+            background: rgba(212, 175, 55, 0.1);
+        }
+
+        .stat-box {
+            background: rgba(0, 0, 0, 0.3);
+            border-bottom: 2px solid var(--gold);
+            text-align: center;
+            padding: 10px;
+            border-radius: 4px;
+        }
+
+        .input-field {
+            background: rgba(42, 42, 42, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            padding: 8px;
+            border-radius: 4px;
+            width: 100%;
+        }
+
+        .star-active { color: var(--gold); text-shadow: 0 0 8px var(--gold); }
+        .star-inactive { color: rgba(255,255,255,0.1); }
+
+        .btn-action {
+            background: linear-gradient(135deg, var(--gold) 0%, #b8860b 100%);
+            color: black;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+
+        .btn-action:hover { transform: scale(1.05); }
+
+        .desc-text { font-size: 0.75rem; opacity: 0.8; line-height: 1.4; }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 3px; }
+    </style>
+</head>
+<body class="draemora-stars p-4 md:p-6" id="app-body">
+
+    <div class="max-w-7xl mx-auto">
+        <!-- HEADER / PERFIS -->
+        <header class="panel p-4 mb-6 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+                <h1 class="text-3xl font-bold tracking-tighter">DRAEMORA <span class="text-sm align-top opacity-50">4.0</span></h1>
+                <div class="h-10 w-px bg-gray-700 hidden md:block"></div>
+                <div>
+                    <label class="text-[10px] uppercase text-gray-400 block mb-1">Perfil Ativo</label>
+                    <select id="profileSelector" class="input-field py-1 text-sm w-48" onchange="switchProfile(this.value)"></select>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="createNewProfile()" class="bg-green-700 hover:bg-green-600 px-4 py-2 rounded text-xs font-bold uppercase transition">Novo Herói</button>
+                <button onclick="deleteCurrentProfile()" class="bg-red-900 hover:bg-red-800 px-4 py-2 rounded text-xs font-bold uppercase transition">Apagar</button>
+            </div>
+        </header>
+
+        <!-- NAVEGAÇÃO -->
+        <nav class="flex gap-2 mb-6 border-b border-gray-800">
+            <div class="nav-tab active" id="tab-personagem" onclick="showTab('personagem')">Personagem</div>
+            <div class="nav-tab" id="tab-arsenal" onclick="showTab('arsenal')">Arsenal & Notas</div>
+            <div class="nav-tab" id="tab-personalizacao" onclick="showTab('personalizacao')">Personalização</div>
+        </nav>
+
+        <!-- CONTEÚDO: PERSONAGEM -->
+        <div id="content-personagem" class="tab-content grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="space-y-6">
+                <section class="panel p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl uppercase font-bold">Herói</h2>
+                        <div id="apex-stars" class="flex gap-1 text-xl cursor-pointer"></div>
+                    </div>
+                    <div class="space-y-4">
+                        <input type="text" id="charName" class="input-field text-xl font-bold" placeholder="Nome do Personagem" oninput="updateProfileName(this.value)">
+                        <div class="grid grid-cols-2 gap-2">
+                            <select id="charRace" class="input-field" onchange="updateCharacter()"></select>
+                            <select id="charClass" class="input-field" onchange="updateCharacter()"></select>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="panel p-6">
+                    <h2 class="text-xl mb-4 border-b border-gray-700 pb-2 uppercase">Atributos Base</h2>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="text-center">
+                            <label class="text-xs opacity-50">FOR</label>
+                            <input type="number" id="attr-for" class="input-field text-center font-bold" onchange="saveData()">
+                        </div>
+                        <div class="text-center">
+                            <label class="text-xs opacity-50">DES</label>
+                            <input type="number" id="attr-des" class="input-field text-center font-bold" onchange="saveData()">
+                        </div>
+                        <div class="text-center">
+                            <label class="text-xs opacity-50">COR</label>
+                            <input type="number" id="attr-cor" class="input-field text-center font-bold" onchange="saveData()">
+                        </div>
+                        <div class="text-center">
+                            <label class="text-xs opacity-50">MEN</label>
+                            <input type="number" id="attr-men" class="input-field text-center font-bold" onchange="saveData()">
+                        </div>
+                        <div class="text-center">
+                            <label class="text-xs opacity-50">ALM</label>
+                            <input type="number" id="attr-alm" class="input-field text-center font-bold" onchange="saveData()">
+                        </div>
+                        <div class="text-center">
+                            <label class="text-xs opacity-50">CAR</label>
+                            <input type="number" id="attr-car" class="input-field text-center font-bold" onchange="saveData()">
+                        </div>
+                    </div>
+                </section>
+
+                <section class="panel p-6">
+                    <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
+                        <h2 class="text-xl uppercase">Perícias</h2>
+                        <button onclick="addSkill()" class="btn-action text-[10px] px-2 py-1 rounded uppercase">Adicionar</button>
+                    </div>
+                    <div id="skills-list" class="space-y-2 max-h-60 overflow-y-auto pr-2"></div>
+                </section>
+            </div>
+
+            <div class="space-y-6">
+                <section class="panel p-6">
+                    <h2 class="text-xl mb-4 border-b border-gray-700 pb-2 text-center uppercase">Combate</h2>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="stat-box">
+                            <div class="text-[10px] opacity-60 uppercase">Vida (Formula)</div>
+                            <div id="stat-hp" class="text-2xl font-bold">0</div>
+                            <button onclick="rollHealth()" class="btn-action text-[10px] px-2 py-0.5 mt-1 rounded uppercase">Rolar</button>
+                        </div>
+                        <div class="stat-box">
+                            <div class="text-[10px] opacity-60 uppercase">Defesa</div>
+                            <div id="stat-def" class="text-2xl font-bold">0</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="text-[10px] opacity-60 uppercase">Red. Física</div>
+                            <div id="stat-rf" class="text-2xl font-bold">0</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="text-[10px] opacity-60 uppercase">Red. Mágica</div>
+                            <div id="stat-rm" class="text-2xl font-bold">0</div>
+                        </div>
+                    </div>
+                </section>
+                <section class="panel p-6">
+                    <h2 class="text-lg mb-4 text-gold uppercase">Habilidades de Classe</h2>
+                    <div id="class-features" class="space-y-4 max-h-48 overflow-y-auto pr-2"></div>
+                </section>
+                <section class="panel p-6">
+                    <h2 class="text-lg mb-4 text-blue-400 uppercase">Habilidades de Raça</h2>
+                    <div id="race-features" class="space-y-4 max-h-48 overflow-y-auto pr-2"></div>
+                </section>
+            </div>
+
+            <div class="space-y-6">
+                <section class="panel p-6">
+                    <h2 class="text-lg mb-4 text-gold uppercase">Talentos <span id="talent-count" class="text-xs opacity-50">0/2</span></h2>
+                    <div id="talent-list" class="space-y-3 max-h-60 overflow-y-auto pr-2"></div>
+                </section>
+                <section class="panel p-6">
+                    <h2 class="text-lg mb-4 text-red-500 uppercase">Máculas <span id="macula-count" class="text-xs opacity-50">0/2</span></h2>
+                    <div id="macula-list" class="space-y-3 max-h-60 overflow-y-auto pr-2"></div>
+                </section>
+            </div>
+        </div>
+
+        <!-- CONTEÚDO: ARSENAL & NOTAS -->
+        <div id="content-arsenal" class="tab-content hidden grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <section class="panel p-6">
+                <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
+                    <h2 class="text-xl uppercase"><i class="fa-solid fa-toolbox mr-2"></i> Arsenal</h2>
+                    <button onclick="addArsenalItem()" class="btn-action text-xs px-3 py-1 rounded uppercase">Novo Item</button>
+                </div>
+                <div id="arsenal-list" class="space-y-4 max-h-[600px] overflow-y-auto pr-2"></div>
+            </section>
+            
+            <section class="panel p-6 flex flex-col">
+                <h2 class="text-xl mb-4 border-b border-gray-700 pb-2 uppercase"><i class="fa-solid fa-book mr-2"></i> Anotações</h2>
+                <textarea id="charNotes" class="input-field h-[400px] resize-none p-4 leading-relaxed mb-6" placeholder="Escreva aqui a história do seu personagem, missões ou segredos..." oninput="saveData()"></textarea>
+                
+                <h2 class="text-xl mb-4 border-b border-gray-700 pb-2 uppercase"><i class="fa-solid fa-coins mr-2"></i> Carteira</h2>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="text-center">
+                        <label class="text-[10px] opacity-60 block mb-1">DSB (Bronze)</label>
+                        <input type="number" id="coin-dsb" class="input-field text-center font-bold" placeholder="0" onchange="saveData()">
+                    </div>
+                    <div class="text-center">
+                        <label class="text-[10px] opacity-60 block mb-1">DSP (Prata)</label>
+                        <input type="number" id="coin-dsp" class="input-field text-center font-bold" placeholder="0" onchange="saveData()">
+                    </div>
+                    <div class="text-center">
+                        <label class="text-[10px] opacity-60 block mb-1">DSO (Ouro)</label>
+                        <input type="number" id="coin-dso" class="input-field text-center font-bold" placeholder="0" onchange="saveData()">
+                    </div>
+                    <div class="text-center">
+                        <label class="text-[10px] opacity-60 block mb-1">DSD (Diamante)</label>
+                        <input type="number" id="coin-dsd" class="input-field text-center font-bold" placeholder="0" onchange="saveData()">
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- CONTEÚDO: PERSONALIZAÇÃO -->
+        <div id="content-personalizacao" class="tab-content hidden">
+            <div class="panel p-8 max-w-2xl mx-auto space-y-8">
+                <h2 class="text-2xl text-center border-b border-gold pb-4 uppercase">Customização Visual</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div>
+                        <label class="block mb-2 font-bold uppercase text-sm">Temas Padrão</label>
+                        <div class="grid grid-cols-1 gap-2">
+                            <button onclick="applyTheme('dark')" class="bg-zinc-900 border border-zinc-700 p-3 rounded text-left hover:border-gold">Dark (Padrão)</button>
+                            <button onclick="applyTheme('white')" class="bg-white text-black p-3 rounded text-left hover:border-gold">White (Claro)</button>
+                            <button onclick="applyTheme('draemora')" class="bg-blue-900 p-3 rounded text-left hover:border-gold border border-gold">Draemora Base</button>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block mb-2 font-bold uppercase text-sm">Fonte da Alma</label>
+                        <select id="style-font" class="input-field" onchange="updateStyle('font', this.value)">
+                            <option value="'Quicksand', sans-serif">Quicksand (Moderna)</option>
+                            <option value="'Cinzel', serif">Cinzel (Épica)</option>
+                            <option value="'MedievalSharp', cursive">Medieval (Clássica)</option>
+                            <option value="'Roboto', sans-serif">Roboto (Limpa)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <label class="block font-bold uppercase text-sm">Cores Personalizadas</label>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <span class="text-xs opacity-60">Fundo Principal</span>
+                            <div class="flex gap-2 items-center">
+                                <input type="color" id="style-bg" onchange="updateStyle('bg', this.value)" class="w-10 h-10 bg-transparent cursor-pointer">
+                                <span class="text-xs uppercase" id="bg-hex">#000000</span>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="text-xs opacity-60">Cor dos Painéis</span>
+                            <div class="flex gap-2 items-center">
+                                <input type="color" id="style-panel" onchange="updateStyle('panel', this.value)" class="w-10 h-10 bg-transparent cursor-pointer">
+                                <span class="text-xs uppercase" id="panel-hex">#1a1a1a</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <p class="text-[10px] text-center opacity-40 italic mt-8 uppercase tracking-widest">As mudanças são salvas automaticamente em cada perfil.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- BASE DE DADOS COMPLETA ---
+        const RAÇAS = {
+            "Astris": {
+                hp: "3d4+10", def: 8, rf: 4, rm: 4,
+                traits: [
+                    { name: "Contrato Dimensional", desc: "Ação Bônus: Escolha Espaço (+2 Ref), Tempo (Reroll 2x) ou Matéria (+2 RF/RM)." },
+                    { name: "Geometria Viva", desc: "Ação Livre: Pode atravessar 3m de matéria sólida 1x por cena." }
+                ],
+                talents: [
+                    { name: "Contrato do Horizonte", desc: "Aumenta o alcance de magias espaciais e concede +2 de dano Mente." },
+                    { name: "Passo Dimensional", desc: "Teletransporte curto (9m) para si e um aliado." }
+                ],
+                maculas: [
+                    { name: "Fratura Dimensional", desc: "Debilitação física após usar saltos espaciais." },
+                    { name: "Vozes do Além", desc: "Sussurros que atrapalham testes de concentração." }
+                ]
+            },
+            "Colosso": {
+                hp: "2d6+10", def: 9, rf: 7, rm: 7,
+                traits: [
+                    { name: "Núcleo Incompreensível", desc: "Imune a efeitos de emoções/espírito." },
+                    { name: "Estrutura Energética", desc: "Usa Energia em vez de Vida. Cura mágica só afeta 50%." }
+                ],
+                talents: [
+                    { name: "Sobrecarga Controlada", desc: "+1d6 dano no próx. ataque; se rolar 1, sofre recuo." },
+                    { name: "Revestimento Arcano", desc: "+2 RM contra a primeira magia de cada cena." }
+                ],
+                maculas: [
+                    { name: "Instabilidade Energética", desc: "Chance de -2 em todos os testes ao usar habilidades de cena." },
+                    { name: "Dreno Ineficiente", desc: "Cura mágica é apenas 25% eficaz." }
+                ]
+            },
+            "Crônidas": {
+                hp: "3d6+9", def: 7, rf: 5, rm: 5,
+                traits: [
+                    { name: "Caminho Visto", desc: "Grupo ignora primeiro terreno difícil; vantagem contra surpresa." },
+                    { name: "Aceleração Pessoal", desc: "Ação Padrão extra; fica Lento no turno seguinte." }
+                ],
+                talents: [
+                    { name: "Vislumbre de Aço", desc: "Usa Mente em vez de Destreza para Esquiva." },
+                    { name: "Fio do Destino", desc: "Força qualquer criatura a repetir um teste (1x cena)." }
+                ],
+                maculas: [
+                    { name: "Des sincronia", desc: "Sempre age por último na iniciativa." },
+                    { name: "Vertigem Temporal", desc: "Teste de Mente ou fica Atordoado no início do combate." }
+                ]
+            },
+            "Dampiros": {
+                hp: "3d6+8", def: 9, rf: 5, rm: 3,
+                traits: [
+                    { name: "Velocidade Antinatural", desc: "Ação bônus: dobra movimento; imune a flanco." },
+                    { name: "Vital é o Sangue", desc: "Recupera 2d4+Corpo de Vida (1x cena)." }
+                ],
+                talents: [
+                    { name: "Passo Espectral", desc: "Teleporte 9m para sombras (Mente vezes por cena)." },
+                    { name: "Vontade Inquebrável", desc: "Mente substitui Alma contra controle mental." }
+                ],
+                maculas: [
+                    { name: "Sombra do Pai", desc: "Desvantagem contra Vampiros Puros." },
+                    { name: "Vínculo com o Lar", desc: "Precisa de descanso em santuário para curar." }
+                ]
+            },
+            "Dríades": {
+                hp: "2d8+7", def: 8, rf: 2, rm: 7,
+                traits: [
+                    { name: "Raiz-Vínculo", desc: "Enraizar-se para curar aliados próximos." },
+                    { name: "Controle Vegetal", desc: "Manipula plantas para dificultar inimigos." }
+                ],
+                talents: [
+                    { name: "Broto Curativo", desc: "Cura automática 2d6 em aliado." },
+                    { name: "Pele de Casca", desc: "+2 RF por 2 rodadas." }
+                ],
+                maculas: [
+                    { name: "Vulnerabilidade Fogo", desc: "Dano de fogo dobrado." },
+                    { name: "Necessidade Solo", desc: "Precisa de solo fértil a cada 24h." }
+                ]
+            },
+            "Eclíptico": {
+                hp: "3d4+6", def: 9, rf: 6, rm: 6,
+                traits: [
+                    { name: "Centelha Dissonante", desc: "+2d6 dano na arma por 2 rodadas." },
+                    { name: "Fogo Pentecostes", desc: "Chamas restauram sua vida." }
+                ],
+                talents: [
+                    { name: "Reflexo do Caos", desc: "Contra-ataque imediato após sofrer crítico." },
+                    { name: "Asas Falcão", desc: "Voo livre mágico temporário." }
+                ],
+                maculas: [
+                    { name: "Rejeição Cósmica", desc: "Seres divinos/infernais hostilizam você." },
+                    { name: "Conflito Energias", desc: "Penalidades ao usar magias opostas." }
+                ]
+            },
+            "Elfo Negro": {
+                hp: "5d4+8", def: 11, rf: 5, rm: 6,
+                traits: [
+                    { name: "Marca de sangue", desc: "Pacto de sangue que fortalece aliado." },
+                    { name: "Armamento Mágico", desc: "Imbui arma com Mente ou Alma." }
+                ],
+                talents: [
+                    { name: "Sombras Silenciosas", desc: "Invisível por 1 rodada ao iniciar combate." },
+                    { name: "Língua de Elfo", desc: "+2 em testes sociais." }
+                ],
+                maculas: [
+                    { name: "Maldito Pela Luz", desc: "-5 em testes sob sol direto." },
+                    { name: "Vínculo Obsessivo", desc: "Penalidade se parceiro de pacto sofrer dano." }
+                ]
+            },
+            "Feral": {
+                hp: "3d6+12", def: 8, rf: 6, rm: 3,
+                traits: [
+                    { name: "Forma Feral", desc: "Ganha bônus massivos em Vida e Dano Físico." },
+                    { name: "Quebra Gelo", desc: "Ignora penalidade em frio extremo." }
+                ],
+                talents: [
+                    { name: "Rugido das Neves", desc: "Amedronta inimigos em área." },
+                    { name: "Avalanche", desc: "Ataque em área que atordoa." }
+                ],
+                maculas: [
+                    { name: "Frenesi", desc: "Ataca indiscriminadamente se estiver ferido." },
+                    { name: "Dependente do Frio", desc: "Debilitação em climas quentes." }
+                ]
+            },
+            "Humano": {
+                hp: "2d10+8", def: 9, rf: 6, rm: 5,
+                traits: [
+                    { name: "Ímpeto Humano", desc: "Vantagem em testes (gasta ponto de Alma)." },
+                    { name: "Aprendizado Rápido", desc: "Usa perícia não treinada (1x cena)." }
+                ],
+                talents: [
+                    { name: "Adaptável", desc: "Aprende perícia de outra classe." },
+                    { name: "Liderança", desc: "Bônus para aliados próximos." }
+                ],
+                maculas: [
+                    { name: "Coração Mortal", desc: "Vulnerável a manipulação emocional." },
+                    { name: "Corpo Frágil", desc: "+2 de dano recebido de fontes físicas." }
+                ]
+            },
+            "Licantropo": {
+                hp: "4d6+10", def: 10, rf: 6, rm: 0,
+                traits: [
+                    { name: "Forma Ancestral", desc: "Assume forma híbrida com bônus de Força." },
+                    { name: "Lua Cheia", desc: "Poder instável em noites de lua." }
+                ],
+                talents: [
+                    { name: "Caçador de Sangue", desc: "Cura ao causar dano em alvos sangrando." },
+                    { name: "Fera Dominante", desc: "Controle total sobre a transformação." }
+                ],
+                maculas: [
+                    { name: "Dor Metamorfose", desc: "Dano direto ao se transformar." },
+                    { name: "Fera à Flor da Pele", desc: "Stress causa transformação involuntária." }
+                ]
+            },
+            "Meio-Celestial": {
+                hp: "3d6+6", def: 10, rf: 3, rm: 5,
+                traits: [
+                    { name: "Voz Domínios", desc: "Ouve orientações divinas (Mente)." },
+                    { name: "Sangue Sagrado", desc: "Cura aliados ao redor ao sangrar." }
+                ],
+                talents: [
+                    { name: "Lâmina de Luz", desc: "Invoque arma de luz 1d10+Alma." },
+                    { name: "Guia Luminoso", desc: "+2 em testes de aliados." }
+                ],
+                maculas: [
+                    { name: "Exaustão Divina", desc: "Poderes consomem vigor físico rapidamente." },
+                    { name: "Sombra do Divino", desc: "Seres malignos detetam você facilmente." }
+                ]
+            },
+            "Meio-Demônio": {
+                hp: "2d6+10", def: 8, rf: 6, rm: 4,
+                traits: [
+                    { name: "Meu Orgulho", desc: "Forma demoníaca com bônus de Vida Temp." },
+                    { name: "Não foi Escolha", desc: "Vantagem contra intimidação." }
+                ],
+                talents: [
+                    { name: "Violência Ressonante", desc: "Dano extra em ataques críticos." },
+                    { name: "Pulso Maldito", desc: "Magia causa dano residual no tempo." }
+                ],
+                maculas: [
+                    { name: "Sede de Poder", desc: "Atraído por pactos perigosos." },
+                    { name: "Fissuras Visíveis", desc: "Preconceito em áreas civis." }
+                ]
+            },
+            "Mortalhas": {
+                hp: "3d8+5", def: 9, rf: 8, rm: 5,
+                traits: [
+                    { name: "Ossuário", desc: "Cria armas ou escudos de ossos." },
+                    { name: "Chamado Credor", desc: "Vê a vida restante dos seres." }
+                ],
+                talents: [
+                    { name: "Golpe da Dívida", desc: "Dano extra contra amaldiçoados." },
+                    { name: "Correntes Invisíveis", desc: "Paralisa alvos espiritualmente." }
+                ],
+                maculas: [
+                    { name: "Fobia Solar", desc: "Pavor e debilitação sob sol direto." },
+                    { name: "Rachaduras Véu", desc: "Cura só funciona com 50% de eficácia." }
+                ]
+            },
+            "Vampiros": {
+                hp: "3d6+8", def: 10, rf: 7, rm: 4,
+                traits: [
+                    { name: "Sede de Sangue (Obrigatoria)", desc: "Mácula Natural: Deve se alimentar ou sofrer -3 atributos." },
+                    { name: "Beijo do Predador", desc: "Mordida recupera 3d10 de Vida." }
+                ],
+                talents: [
+                    { name: "Regeneração Sanguínea", desc: "Cura ao causar dano crítico." },
+                    { name: "Velocidade Sobrenatural", desc: "+2 Reflexos/Iniciativa." }
+                ],
+                maculas: [
+                    { name: "Fraqueza Luz Solar", desc: "Dano massivo sob sol." },
+                    { name: "Vulnerável Prata", desc: "Dano de prata ignora reduções." }
+                ]
+            },
+            "Zal'Kha": {
+                hp: "2d8+6", def: 11, rf: 5, rm: 6,
+                traits: [
+                    { name: "Paranóia", desc: "Assume forma humana perfeita de qualquer um." },
+                    { name: "Gás Tóxico", desc: "Libera fumaça que sufoca inimigos." }
+                ],
+                talents: [
+                    { name: "Identidade Descartável", desc: "+3 em Enganação/Furtividade." },
+                    { name: "Regeneração Reptiliana", desc: "Cura 1d10 por rodada (limite COR)." }
+                ],
+                maculas: [
+                    { name: "Metabolismo Acelerado", desc: "Fome constante; penalidade sem comida." },
+                    { name: "Identidade Fragmentada", desc: "Crise existencial após longa mímica." }
+                ]
+            }
+        };
+
+        const CLASSES = {
+            "Aniquilador": { hp: 10, rf: 7, rm: 2, maestria: 6, features: [{ name: "Zona de Duelo", desc: "+3 Def/Atq contra um alvo desafiado." }, { name: "Letalidade", desc: "Crítico em dados iguais." }] },
+            "Apostador": { hp: 7, rf: 7, rm: 7, maestria: 2, features: [{ name: "Trinca da Sorte!", desc: "Rola 3d8 para efeitos aleatórios." }] },
+            "Artesão": { hp: 8, rf: 6, rm: 7, maestria: 2, features: [{ name: "Oficina de Bolso", desc: "Cria ou conserta itens instantaneamente." }] },
+            "Atirador": { hp: 6, rf: 3, rm: 3, maestria: 4, features: [{ name: "Disparo Certeiro", desc: "Ignora penalidade de cobertura leve." }] },
+            "Berserker": { hp: 15, rf: 2, rm: 0, maestria: 5, features: [{ name: "Em Fúria!", desc: "+3 For/Cor, mas não pode usar magia." }] },
+            "Bruxo": { hp: 9, rf: 7, rm: 9, maestria: 6, features: [{ name: "Pacto Arcano", desc: "Acesso a rituais de entidades." }] },
+            "Caçador": { hp: 9, rf: 5, rm: 5, maestria: 4, features: [{ name: "Estudo da Presa", desc: "Dano extra contra um tipo de inimigo." }] },
+            "Exorcista": { hp: 9, rf: 3, rm: 5, maestria: 3, features: [{ name: "Arsenal Sagrado", desc: "Armas causam dano mágico extra." }] },
+            "Feiticeiro": { hp: 7, rf: 4, rm: 4, maestria: 6, features: [{ name: "Dobra Elemental", desc: "Gasta Alma para moldar elementos." }] },
+            "Ilusório": { hp: 5, rf: 4, rm: 3, maestria: 5, features: [{ name: "Ataque Furtivo", desc: "+1d12 dano ao atacar em sigilo." }] },
+            "Lutador": { hp: 12, rf: 5, rm: 3, maestria: 5, features: [{ name: "Ritmo de Combate", desc: "Bônus cumulativo ao acertar golpes." }] },
+            "Mago": { hp: 5, rf: 2, rm: 10, maestria: 2, features: [{ name: "Conjuração Arcaica", desc: "+5 em testes de magia." }] },
+            "Mateiro": { hp: 6, rf: 4, rm: 4, maestria: 6, features: [{ name: "Melhor Amigo", desc: "Companheiro animal que luta ao lado." }] },
+            "Necromante": { hp: 5, rf: 2, rm: 7, maestria: 3, features: [{ name: "Levantem-se", desc: "Ergue servos mortos do chão." }] },
+            "Paladino": { hp: 10, rf: 8, rm: 6, maestria: 7, features: [{ name: "Golpe Divino", desc: "Dano sagrado massivo com a arma." }] },
+            "Poeta das Emoções": { hp: 3, rf: 3, rm: 3, maestria: 2, features: [{ name: "Sinfonia", desc: "Música que cura ou bufa aliados." }] },
+            "Sacerdote": { hp: 8, rf: 3, rm: 6, maestria: 3, features: [{ name: "Mãos Abençoadas", desc: "Cura por toque com gastos de Alma." }] }
+        };
+
+        // --- STATE MANAGEMENT ---
+        let profiles = [];
+        let activeProfileId = null;
+
+        function saveProfiles() {
+            localStorage.setItem('draemora_v5_data', JSON.stringify(profiles));
+            localStorage.setItem('draemora_v5_active_id', activeProfileId);
+        }
+
+        function createNewProfile() {
+            const id = "p_" + Date.now();
+            const newChar = {
+                id: id,
+                name: "Novo Herói",
+                race: "Astris",
+                class: "Aniquilador",
+                baseHp: 0, rolled: false,
+                attrs: { for: 1, des: 1, cor: 1, men: 1, alm: 1, car: 1 },
+                skills: [],
+                talents: [], maculas: [],
+                apices: [false, false, false, false],
+                arsenal: [],
+                wallet: { dsb: 0, dsp: 0, dso: 0, dsd: 0 },
+                notes: "",
+                style: { theme: 'draemora', font: "'Quicksand', sans-serif", bg: "#0a192f", panel: "rgba(26, 26, 26, 0.9)" }
+            };
+            profiles.push(newChar);
+            activeProfileId = id;
+            saveProfiles();
+            renderProfileSelector();
+            loadProfile(id);
+        }
+
+        function switchProfile(id) {
+            activeProfileId = id;
+            saveProfiles();
+            loadProfile(id);
+        }
+
+        function loadProfile(id) {
+            const char = profiles.find(p => p.id === id);
+            if (!char) return;
+
+            if (document.getElementById('charName')) document.getElementById('charName').value = char.name;
+            if (document.getElementById('charRace')) document.getElementById('charRace').value = char.race;
+            if (document.getElementById('charClass')) document.getElementById('charClass').value = char.class;
+            if (document.getElementById('charNotes')) document.getElementById('charNotes').value = char.notes || "";
+            
+            for (let k in char.attrs) {
+                const el = document.getElementById(`attr-${k}`);
+                if (el) el.value = char.attrs[k];
+            }
+
+            // Load Wallet
+            if (char.wallet) {
+                if (document.getElementById('coin-dsb')) document.getElementById('coin-dsb').value = char.wallet.dsb || 0;
+                if (document.getElementById('coin-dsp')) document.getElementById('coin-dsp').value = char.wallet.dsp || 0;
+                if (document.getElementById('coin-dso')) document.getElementById('coin-dso').value = char.wallet.dso || 0;
+                if (document.getElementById('coin-dsd')) document.getElementById('coin-dsd').value = char.wallet.dsd || 0;
+            }
+            
+            applyStyleToUI(char.style);
+            updateCharacter();
+        }
+
+        function updateCharacter() {
+            const char = profiles.find(p => p.id === activeProfileId);
+            if (!char) return;
+
+            char.race = document.getElementById('charRace')?.value || char.race;
+            char.class = document.getElementById('charClass')?.value || char.class;
+
+            const rData = RAÇAS[char.race] || RAÇAS["Astris"];
+            const cData = CLASSES[char.class] || CLASSES["Aniquilador"];
+
+            if (document.getElementById('stat-def')) document.getElementById('stat-def').innerText = rData.def;
+            if (document.getElementById('stat-rf')) document.getElementById('stat-rf').innerText = rData.rf + cData.rf;
+            if (document.getElementById('stat-rm')) document.getElementById('stat-rm').innerText = rData.rm + cData.rm;
+            if (document.getElementById('stat-hp')) document.getElementById('stat-hp').innerText = char.rolled ? (char.baseHp + cData.hp) : "???";
+
+            renderList('class-features', cData.features, 'border-gold');
+            renderList('race-features', rData.traits, 'border-blue-500');
+            renderStars(char);
+            renderArsenal(char);
+            renderSkills(char);
+
+            // Regra Especial Vampiro
+            const mLimit = char.race === "Vampiros" ? 1 : 2;
+            renderOptions('talent-list', rData.talents, char.talents, 'talent', 2);
+            renderOptions('macula-list', rData.maculas, char.maculas, 'macula', mLimit);
+
+            saveProfiles();
+        }
+
+        // --- UI RENDERING ---
+        function renderList(id, items, bColor) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.innerHTML = items.map(i => `
+                <div class="border-l-4 ${bColor} bg-black bg-opacity-20 p-2 rounded">
+                    <div class="font-bold text-xs uppercase text-gold">${i.name}</div>
+                    <div class="desc-text">${i.desc}</div>
+                </div>
+            `).join('');
+        }
+
+        function renderOptions(id, opts, selected, type, limit) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.innerHTML = opts.map(o => {
+                const isSel = selected.includes(o.name);
+                return `
+                    <div class="flex items-start gap-2 p-2 bg-black bg-opacity-20 rounded border border-white border-opacity-5 hover:border-gold transition cursor-pointer" onclick="toggleOption('${type}', '${o.name}', ${limit})">
+                        <input type="checkbox" ${isSel ? 'checked' : ''} class="mt-1 accent-gold pointer-events-none">
+                        <div>
+                            <div class="text-sm font-bold ${isSel ? 'text-gold' : 'opacity-60'}">${o.name}</div>
+                            <div class="desc-text">${o.desc}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            const countEl = document.getElementById(`${type}-count`);
+            if (countEl) countEl.innerText = `${selected.length}/${limit}`;
+        }
+
+        function renderStars(char) {
+            const container = document.getElementById('apex-stars');
+            if (!container) return;
+            container.innerHTML = (char.apices || [false,false,false,false]).map((a, i) => `
+                <i class="fa-solid fa-star ${a ? 'star-active' : 'star-inactive'}" onclick="toggleApex(${i})"></i>
+            `).join('');
+        }
+
+        function renderArsenal(char) {
+            const list = document.getElementById('arsenal-list');
+            if (!list) return;
+            list.innerHTML = (char.arsenal || []).map(item => `
+                <div class="p-4 bg-black bg-opacity-30 rounded border border-white border-opacity-10 group relative">
+                    <button onclick="deleteArsenalItem(${item.id})" class="absolute top-2 right-2 text-red-500 opacity-0 group-hover:opacity-100 transition"><i class="fa-solid fa-trash"></i></button>
+                    <input type="text" value="${item.name}" oninput="editItem(${item.id}, 'name', this.value)" class="bg-transparent border-b border-gray-700 w-full mb-2 font-bold text-gold outline-none">
+                    <textarea oninput="editItem(${item.id}, 'desc', this.value)" class="bg-transparent w-full text-xs h-12 outline-none resize-none opacity-80" placeholder="Propriedades do item...">${item.desc}</textarea>
+                </div>
+            `).join('') || `<div class="text-center opacity-30 py-8">Arsenal Vazio</div>`;
+        }
+
+        function renderSkills(char) {
+            const container = document.getElementById('skills-list');
+            if (!container) return;
+            container.innerHTML = (char.skills || []).map(s => `
+                <div class="flex items-center gap-2 group">
+                    <input type="text" value="${s.name}" oninput="updateSkill(${s.id}, 'name', this.value)" 
+                           class="input-field py-1 text-sm flex-grow bg-opacity-40">
+                    <select onchange="updateSkill(${s.id}, 'value', this.value)" 
+                            class="input-field py-1 text-sm w-12 text-center bg-opacity-40">
+                        <option value="0" ${s.value === 0 ? 'selected' : ''}>0</option>
+                        <option value="1" ${s.value === 1 ? 'selected' : ''}>1</option>
+                        <option value="2" ${s.value === 2 ? 'selected' : ''}>2</option>
+                        <option value="3" ${s.value === 3 ? 'selected' : ''}>3</option>
+                    </select>
+                    <button onclick="deleteSkill(${s.id})" class="text-red-500 opacity-0 group-hover:opacity-100 transition px-1">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            `).join('') || `<div class="text-center opacity-20 py-4 text-[10px] uppercase">Nenhuma Perícia</div>`;
+        }
+
+        // --- LOGIC ---
+        function addSkill() {
+            const char = profiles.find(p => p.id === activeProfileId);
+            if (!char.skills) char.skills = [];
+            char.skills.push({ id: Date.now(), name: "Nova Perícia", value: 0 });
+            updateCharacter();
+        }
+
+        function deleteSkill(id) {
+            const char = profiles.find(p => p.id === activeProfileId);
+            char.skills = char.skills.filter(s => s.id !== id);
+            updateCharacter();
+        }
+
+        function updateSkill(id, field, val) {
+            const char = profiles.find(p => p.id === activeProfileId);
+            const skill = char.skills.find(s => s.id === id);
+            if (skill) skill[field] = field === 'value' ? parseInt(val) || 0 : val;
+            saveProfiles();
+        }
+
+        function toggleOption(type, name, limit) {
+            const char = profiles.find(p => p.id === activeProfileId);
+            const list = type === 'talent' ? char.talents : char.maculas;
+            if (list.includes(name)) list.splice(list.indexOf(name), 1);
+            else if (list.length < limit) list.push(name);
+            updateCharacter();
+        }
+
+        function toggleApex(i) {
+            const char = profiles.find(p => p.id === activeProfileId);
+            char.apices[i] = !char.apices[i];
+            updateCharacter();
+        }
+
+        function showTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            if (document.getElementById('content-' + tab)) document.getElementById('content-' + tab).classList.remove('hidden');
+            if (document.getElementById('tab-' + tab)) document.getElementById('tab-' + tab).classList.add('active');
+        }
+
+        function addArsenalItem() {
+            const char = profiles.find(p => p.id === activeProfileId);
+            if (!char.arsenal) char.arsenal = [];
+            char.arsenal.push({ id: Date.now(), name: "Novo Item", desc: "" });
+            updateCharacter();
+        }
+
+        function deleteArsenalItem(id) {
+            const char = profiles.find(p => p.id === activeProfileId);
+            char.arsenal = char.arsenal.filter(i => i.id !== id);
+            updateCharacter();
+        }
+
+        function editItem(id, field, val) {
+            const char = profiles.find(p => p.id === activeProfileId);
+            const item = char.arsenal?.find(i => i.id === id);
+            if (item) item[field] = val;
+            saveProfiles();
+        }
+
+        function rollHealth() {
+            const char = profiles.find(p => p.id === activeProfileId);
+            const formula = RAÇAS[char.race]?.hp || "2d6+0";
+            const [dice, add] = formula.split('+');
+            const [n, f] = dice.split('d');
+            let total = parseInt(add || 0);
+            for(let i=0; i<n; i++) total += Math.floor(Math.random() * f) + 1;
+            char.baseHp = total;
+            char.rolled = true;
+            updateCharacter();
+        }
+
+        function saveData() {
+            const char = profiles.find(p => p.id === activeProfileId);
+            if (!char) return;
+            for (let k in char.attrs) {
+                const el = document.getElementById(`attr-${k}`);
+                if (el) char.attrs[k] = parseInt(el.value) || 1;
+            }
+            if (document.getElementById('charNotes')) char.notes = document.getElementById('charNotes').value;
+
+            // Save Wallet
+            char.wallet = {
+                dsb: parseInt(document.getElementById('coin-dsb')?.value) || 0,
+                dsp: parseInt(document.getElementById('coin-dsp')?.value) || 0,
+                dso: parseInt(document.getElementById('coin-dso')?.value) || 0,
+                dsd: parseInt(document.getElementById('coin-dsd')?.value) || 0
+            };
+
+            saveProfiles();
+        }
+
+        function updateProfileName(n) {
+            const char = profiles.find(p => p.id === activeProfileId);
+            if (char) { char.name = n; renderProfileSelector(); saveProfiles(); }
+        }
+
+        function deleteCurrentProfile() {
+            if (profiles.length <= 1) return;
+            profiles = profiles.filter(p => p.id !== activeProfileId);
+            activeProfileId = profiles[0].id;
+            saveProfiles(); renderProfileSelector(); loadProfile(activeProfileId);
+        }
+
+        // --- PERSONALIZAÇÃO ENGINE ---
+        function updateStyle(prop, val) {
+            const char = profiles.find(p => p.id === activeProfileId);
+            if (char) {
+                char.style[prop] = val;
+                applyStyleToUI(char.style);
+                saveProfiles();
+            }
+        }
+
+        function applyTheme(type) {
+            const styles = {
+                dark: { bg: "#0f0f0f", panel: "rgba(26, 26, 26, 0.9)", font: "'Quicksand', sans-serif", theme: 'dark' },
+                white: { bg: "#f0f0f0", panel: "rgba(255, 255, 255, 0.95)", font: "'Roboto', sans-serif", theme: 'white' },
+                draemora: { bg: "#0a192f", panel: "rgba(26, 26, 26, 0.85)", font: "'Cinzel', serif", theme: 'draemora' }
+            };
+            const char = profiles.find(p => p.id === activeProfileId);
+            if (char) {
+                char.style = { ...char.style, ...styles[type] };
+                applyStyleToUI(char.style);
+                saveProfiles();
+            }
+        }
+
+        function applyStyleToUI(s) {
+            const body = document.getElementById('app-body');
+            if (!body) return;
+            body.style.backgroundColor = s.bg;
+            body.style.fontFamily = s.font;
+            body.style.color = s.theme === 'white' ? '#1a1a1a' : '#e0e0e0';
+            
+            if (s.theme === 'draemora') body.classList.add('draemora-stars');
+            else body.classList.remove('draemora-stars');
+
+            document.documentElement.style.setProperty('--panel-bg', s.panel);
+            
+            if (document.getElementById('style-font')) document.getElementById('style-font').value = s.font;
+            if (document.getElementById('style-bg')) document.getElementById('style-bg').value = s.bg;
+            if (document.getElementById('style-panel')) document.getElementById('style-panel').value = s.panel.includes('rgba') ? '#1a1a1a' : s.panel;
+            if (document.getElementById('bg-hex')) document.getElementById('bg-hex').innerText = s.bg;
+            if (document.getElementById('panel-hex')) document.getElementById('panel-hex').innerText = s.panel;
+        }
+
+        function renderProfileSelector() {
+            const sel = document.getElementById('profileSelector');
+            if (!sel) return;
+            sel.innerHTML = "";
+            profiles.forEach(p => sel.add(new Option(p.name || "Herói", p.id, false, p.id === activeProfileId)));
+        }
+
+        function init() {
+            const rSel = document.getElementById('charRace');
+            const cSel = document.getElementById('charClass');
+            if (rSel) Object.keys(RAÇAS).sort().forEach(r => rSel.add(new Option(r, r)));
+            if (cSel) Object.keys(CLASSES).sort().forEach(c => cSel.add(new Option(c, c)));
+
+            const saved = localStorage.getItem('draemora_v5_data');
+            const last = localStorage.getItem('draemora_v5_active_id');
+            if (saved) {
+                profiles = JSON.parse(saved);
+                activeProfileId = last || (profiles.length > 0 ? profiles[0].id : null);
+                if (activeProfileId) {
+                    renderProfileSelector();
+                    loadProfile(activeProfileId);
+                } else createNewProfile();
+            } else createNewProfile();
+        }
+
+        init();
+    </script>
+</body>
+</html>
